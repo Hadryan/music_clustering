@@ -1,0 +1,103 @@
+---
+title: "Appendix"
+output: pdf_document
+---
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80),tidy=TRUE)
+load("D:\\stml\\data_spotify_songs.rda")
+library('cluster')
+library('e1071')
+library('factoextra')
+```
+
+
+```{r}
+
+#removing categorical variables
+x<-spotify[,-1:-3]
+x=scale(x)
+```
+Scaling the data here is necessary the distribution and units along the column is not same
+```{r}
+# plot the data to you see if any clusters are present in the data.
+ccol <- c("red","blue","magenta")
+pairs(x,gap=0,pch = 8,col=adjustcolor(ccol[spotify$genre],0.3))
+# This is to show variation of genre based on each feature 
+ WGSS <- rep(0,10) #setting up a vector to record the WGSS for each clustering solution.
+
+ n <- nrow(x) #to find the number of rows in the dataset
+ WGSS[1] <- (n-1) * sum(apply(x, 2, var)) #to find the variance of each column in the 
+                                        #   dataset and then adding them up.
+
+ for(k in 2:10)
+   {
+   WGSS[k] <- sum(kmeans(x, centers = k)$withinss) 
+ }
+ plot(1:10, WGSS, type="b", xlab="k", ylab="Within group sum of squares")
+ 
+ # ch index for validation as it is unclear from the dataset
+ k <- 12
+ wss <-bss <-rep(0, k)
+ for(k in 1:k ) {# run kmeans for each value of k
+   fit <-kmeans(x,centers =k)
+   wss[k] <-fit$tot.withinss# store total within sum of squares
+   bss[k] <-fit$betweenss
+ }
+ 
+ N <-nrow(x)
+ ch <-( bss/(1:k -1))/( wss/(N-1:k) )
+ ch[1] <-0
+ ch
+  plot(1:k, ch,type ="b",ylab ="CH",xlab ="K")
+```
+
+```{r}
+  d <-dist(x,method ="euclidean")
+  fit2 <-kmeans(x,centers =2,nstart =50)
+  fit3 <-kmeans(x,centers =3,nstart =50)
+  sil2 <- silhouette(fit2$cluster,d)
+  sil3 <- silhouette(fit3$cluster,d)
+  col <-c("darkorange2","deepskyblue3","magenta3")
+ par( mfrow = c(1,2) )
+  plot(sil2,col =adjustcolor(col[1:2],0.3),main ="Spotify Data -  K =2")
+  plot(sil3,col =adjustcolor(col,0.3), main = "Spotify Data - K =3")
+```
+
+
+
+```{r}
+#used to calculate rand and crand index
+  classAgreement(table(spotify$genre,fit2$cluster))
+  classAgreement(table(spotify$genre,fit3$cluster))
+  fviz_cluster(fit2, data= x)
+   fviz_cluster(fit3, data= x)
+```
+
+```{r}
+fitkm <- kmeans(x, centers = 2, nstart = 20)
+
+par( mfrow = c(1,2) ) # split the plot window in 2 screens
+symb <- c(15, 16, 17)
+col <- c("red", "blue")
+
+# plot with symbol and color corresponding to the species
+pairs(x, gap = 0, pch = symb[spotify$genre],
+col = adjustcolor(col[spotify$genre], 0.4),
+main = "Songs geners on Spotify")
+
+# plot with symbol and color corresponding to the species
+pairs(x, gap = 0, pch = symb[fitkm$cluster],
+col = adjustcolor(col[fitkm$cluster], 0.4),
+main = "Clustering result - K = 2")
+
+
+```
+
+```{r}
+# computing table to calculate how different genres associated to different genres
+ftable(spotify$genre,fitkm$cluster)
+ftable(spotify$genre,fit3$cluster)
+```
